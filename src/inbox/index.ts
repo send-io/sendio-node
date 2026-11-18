@@ -1,0 +1,53 @@
+export {
+  appBase,
+  CONNECT_TTL_MS,
+  type ConnectLink,
+  connectMessage,
+  DEFAULT_APP_URL,
+} from './connect';
+export {
+  assessAttachment,
+  DEFAULT_RELAY,
+  deriveKeys,
+  extractCode,
+  type FreeAttachment,
+  type InboxKeys,
+  inboxToken,
+  normalizeAddress,
+  normalizeLabel,
+  openEnvelope,
+  type ParsedMail,
+  parseMail,
+  phraseFromSeed,
+  RISKY_EXTENSIONS,
+  type RiskVerdict,
+  seedFromPhrase,
+  validateName,
+  validateOrg,
+} from './core';
+export {
+  InboxAuthError,
+  InboxClaimedError,
+  InboxEndedError,
+  InboxError,
+  InboxReplacedError,
+  InboxTakenError,
+} from './errors';
+export {
+  type CheckResult,
+  type ConnectionState,
+  type ConnectLinkOptions,
+  type CreatedInbox,
+  type CreateInboxOptions,
+  FreeInbox,
+  type FreeMail,
+  type FreeMailAttachment,
+  type InboxClientOptions,
+  type InboxStatus,
+  inbox,
+  type MessagesOptions,
+  type PollOptions,
+  solvePow,
+  type WaitForOptions,
+} from './inbox';
+export type { KeyFile, MailRecord } from './storage';

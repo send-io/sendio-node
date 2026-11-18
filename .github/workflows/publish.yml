@@ -1,0 +1,55 @@
+# Publishes @sendio/node to npm when a vX.Y.Z tag lands on the public copy of
+# this SDK (send-io/sendio-node). No token: the package's npm settings list
+# that repository and this workflow file as a trusted publisher (OIDC), which
+# also attaches provenance on its own.
+#
+# A manual run only checks that npm accepts this workflow's sign-in for the
+# package. It builds and publishes nothing. Run it before the first tag and
+# after any change to the trusted publisher on npm.
+
+name: Publish
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  publish:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # npm trusted publishing and provenance
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+      - name: Tag must match package.json version
+        run: test "v$(node -p "require('./package.json').version")" = "$GITHUB_REF_NAME"
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: npm install -g npm@latest # trusted publishing needs npm 11.5.1 or later
+      - run: npm publish --access public # prepublishOnly builds dist first
+
+  npm-signin-check:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+      # The same request npm publish makes first. Prints npm's answer, never a
+      # token (this log is public). npm answers "package not found" for every
+      # mismatch between the trusted publisher on npm and this run.
+      - name: Ask npm whether it accepts this workflow for the package
+        run: |
+          set -eu
+          idt=$(curl -sS -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=npm:registry.npmjs.org" | jq -r .value)
+          code=$(curl -sS -o resp.json -w '%{http_code}' -X POST -H "Authorization: Bearer $idt" -H 'Content-Type: application/json' --data '' "https://registry.npmjs.org/-/npm/v1/oidc/token/exchange/package/@sendio%2fnode")
+          if grep -q '"token"' resp.json; then rm -f resp.json; echo "@sendio/node: HTTP $code, npm accepts the sign-in"
+          else echo "@sendio/node: HTTP $code $(head -c 400 resp.json)"; rm -f resp.json; exit 1; fi

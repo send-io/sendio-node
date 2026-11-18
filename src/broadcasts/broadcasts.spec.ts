@@ -1,0 +1,1132 @@
+import createFetchMock from 'vitest-fetch-mock';
+import type { ErrorResponse } from '../interfaces';
+import { Sendio } from '../sendio';
+import { mockSuccessResponse } from '../test-utils/mock-fetch';
+import type { CancelBroadcastResponseSuccess } from './interfaces/cancel-broadcast.interface';
+import type {
+  CreateBroadcastOptions,
+  CreateBroadcastResponseSuccess,
+} from './interfaces/create-broadcast-options.interface';
+import type { DuplicateBroadcastResponseSuccess } from './interfaces/duplicate-broadcast.interface';
+import type { GetBroadcastResponseSuccess } from './interfaces/get-broadcast.interface';
+import type { ListBroadcastClickedLinksResponseSuccess } from './interfaces/list-broadcast-clicked-links.interface';
+import type { ListBroadcastRecipientsResponseSuccess } from './interfaces/list-broadcast-recipients.interface';
+import type { ListBroadcastsResponseSuccess } from './interfaces/list-broadcasts.interface';
+import type { RemoveBroadcastResponseSuccess } from './interfaces/remove-broadcast.interface';
+import type { UpdateBroadcastResponseSuccess } from './interfaces/update-broadcast.interface';
+
+const fetchMocker = createFetchMock(vi);
+fetchMocker.enableMocks();
+
+const sendio = new Sendio('mx_zKa4RCko_Lhm9ost2YjNCctnPjbLw8Nop');
+
+describe('Broadcasts', () => {
+  afterEach(() => fetchMock.resetMocks());
+  afterAll(() => fetchMocker.disableMocks());
+
+  describe('create', () => {
+    it('missing `from`', async () => {
+      const response: ErrorResponse = {
+        name: 'missing_required_field',
+        statusCode: 422,
+        message: 'Missing `from` field.',
+      };
+
+      fetchMock.mockOnce(JSON.stringify(response), {
+        status: 422,
+        headers: {
+          'content-type': 'application/json',
+        },
+      });
+
+      const data = await sendio.broadcasts.create({} as CreateBroadcastOptions);
+      expect(data).toMatchInlineSnapshot(`
+        {
+          "data": null,
+          "error": {
+            "message": "Missing \`from\` field.",
+            "name": "missing_required_field",
+            "statusCode": 422,
+          },
+          "headers": {
+            "content-type": "application/json",
+          },
+        }
+      `);
+    });
+
+    it('creates broadcast', async () => {
+      const response: CreateBroadcastResponseSuccess = {
+        id: '71cdfe68-cf79-473a-a9d7-21f91db6a526',
+      };
+      fetchMock.mockOnce(JSON.stringify(response), {
+        status: 200,
+        headers: {
+          'content-type': 'application/json',
+        },
+      });
+
+      const payload: CreateBroadcastOptions = {
+        from: 'bu@sendio.com',
+        segmentId: '0192f4ed-c2e9-7112-9c13-b04a043e23ee',
+        subject: 'Hello World',
+        html: '<h1>Hello world</h1>',
+      };
+
+      const data = await sendio.broadcasts.create(payload);
+      expect(data).toMatchInlineSnapshot(`
+        {
+          "data": {
+            "id": "71cdfe68-cf79-473a-a9d7-21f91db6a526",
+          },
+          "error": null,
+          "headers": {
+            "content-type": "application/json",
+          },
+        }
+      `);
+    });
+
+    it('does not mutate payload when using React component', async () => {
+      const mockReact = { type: 'div', props: { children: 'Hi' } };
+      const payload: CreateBroadcastOptions = {
+        from: 'bu@sendio.com',
+        segmentId: '0192f4ed-c2e9-7112-9c13-b04a043e23ee',
+        subject: 'React Broadcast',
+        react: mockReact as React.ReactElement,
+      };
+      const originalPayload = { ...payload };
+
+      fetchMock.mockOnce(JSON.stringify({ id: 'id-123' }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+
+      await sendio.broadcasts.create(payload);
+
+      expect(payload).toEqual(originalPayload);
+    });
+
+    it('creates and sends a broadcast', async () => {
+      const response: CreateBroadcastResponseSuccess = {
+        id: '71cdfe68-cf79-473a-a9d7-21f91db6a526',
+      };
+      fetchMock.mockOnce(JSON.stringify(response), {
+        status: 200,
+        headers: {
+          'content-type': 'application/json',
+        },
+      });
+
+      const payload: CreateBroadcastOptions = {
+        from: 'bu@sendio.com',
+        segmentId: '0192f4ed-c2e9-7112-9c13-b04a043e23ee',
+        subject: 'Hello World',
+        html: '<h1>Hello world</h1>',
+        send: true,
+      };
+
+      const data = await sendio.broadcasts.create(payload);
+      expect(data).toMatchInlineSnapshot(`
+        {
+          "data": {
+            "id": "71cdfe68-cf79-473a-a9d7-21f91db6a526",
+          },
+          "error": null,
+          "headers": {
+            "content-type": "application/json",
+          },
+        }
+      `);
+    });
+
+    it('creates and schedules a broadcast', async () => {
+      const response: CreateBroadcastResponseSuccess = {
+        id: '71cdfe68-cf79-473a-a9d7-21f91db6a526',
+      };
+      fetchMock.mockOnce(JSON.stringify(response), {
+        status: 200,
+        headers: {
+          'content-type': 'application/json',
+        },
+      });
+
+      const payload: CreateBroadcastOptions = {
+        from: 'bu@sendio.com',
+        segmentId: '0192f4ed-c2e9-7112-9c13-b04a043e23ee',
+        subject: 'Hello World',
+        html: '<h1>Hello world</h1>',
+        send: true,
+        scheduledAt: '2024-08-05T11:52:01.858Z',
+      };
+
+      const data = await sendio.broadcasts.create(payload);
+      expect(data).toMatchInlineSnapshot(`
+        {
+          "data": {
+            "id": "71cdfe68-cf79-473a-a9d7-21f91db6a526",
+          },
+          "error": null,
+          "headers": {
+            "content-type": "application/json",
+          },
+        }
+      `);
+    });
+
+    it('creates broadcast with multiple recipients', async () => {
+      const response: CreateBroadcastResponseSuccess = {
+        id: '124dc0f1-e36c-417c-a65c-e33773abc768',
+      };
+
+      fetchMock.mockOnce(JSON.stringify(response), {
+        status: 200,
+        headers: {
+          'content-type': 'application/json',
+        },
+      });
+
+      const payload: CreateBroadcastOptions = {
+        from: 'admin@sendio.com',
+        segmentId: '0192f4f1-d5f9-7110-8eb5-370552515917',
+        subject: 'Hello World',
+        text: 'Hello world',
+      };
+      const data = await sendio.broadcasts.create(payload);
+      expect(data).toMatchInlineSnapshot(`
+        {
+          "data": {
+            "id": "124dc0f1-e36c-417c-a65c-e33773abc768",
+          },
+          "error": null,
+          "headers": {
+            "content-type": "application/json",
+          },
+        }
+      `);
+    });
+
+    it('creates broadcast with multiple replyTo emails', async () => {
+      const response: CreateBroadcastResponseSuccess = {
+        id: '124dc0f1-e36c-417c-a65c-e33773abc768',
+      };
+
+      fetchMock.mockOnce(JSON.stringify(response), {
+        status: 200,
+        headers: {
+          'content-type': 'application/json',
+        },
+      });
+
+      const payload: CreateBroadcastOptions = {
+        from: 'admin@sendio.com',
+        segmentId: '0192f4f1-d5f9-7110-8eb5-370552515917',
+        replyTo: ['foo@sendio.com', 'bar@sendio.com'],
+        subject: 'Hello World',
+        text: 'Hello world',
+      };
+
+      const data = await sendio.broadcasts.create(payload);
+      expect(data).toMatchInlineSnapshot(`
+        {
+          "data": {
+            "id": "124dc0f1-e36c-417c-a65c-e33773abc768",
+          },
+          "error": null,
+          "headers": {
+            "content-type": "application/json",
+          },
+        }
+      `);
+    });
+
+    it('throws an error when an ErrorResponse is returned', async () => {
+      const response: ErrorResponse = {
+        name: 'invalid_parameter',
+        statusCode: 422,
+        message:
+          'Invalid `from` field. The email address needs to follow the `email@example.com` or `Name <email@example.com>` format',
+      };
+
+      fetchMock.mockOnce(JSON.stringify(response), {
+        status: 422,
+        headers: {
+          'content-type': 'application/json',
+        },
+      });
+
+      const payload: CreateBroadcastOptions = {
+        from: 'sendio.com', // Invalid from address
+        segmentId: '0192f4f1-d5f9-7110-8eb5-370552515917',
+        replyTo: ['foo@sendio.com', 'bar@sendio.com'],
+        subject: 'Hello World',
+        text: 'Hello world',
+      };
+
+      const result = sendio.broadcasts.create(payload);
+
+      await expect(result).resolves.toMatchInlineSnapshot(`
+        {
+          "data": null,
+          "error": {
+            "message": "Invalid \`from\` field. The email address needs to follow the \`email@example.com\` or \`Name <email@example.com>\` format",
+            "name": "invalid_parameter",
+            "statusCode": 422,
+          },
+          "headers": {
+            "content-type": "application/json",
+          },
+        }
+      `);
+    });
+
+    it('returns an error when fetch fails', async () => {
+      const originalEnv = process.env;
+      process.env = {
+        ...originalEnv,
+        SENDIO_BASE_URL: 'http://invalidurl.noturl',
+      };
+
+      const result = await sendio.broadcasts.create({
+        from: 'example@sendio.com',
+        segmentId: '0192f4f1-d5f9-7110-8eb5-370552515917',
+        subject: 'Hello World',
+        text: 'Hello world',
+      });
+
+      expect(result).toEqual(
+        expect.objectContaining({
+          data: null,
+          error: {
+            message: 'Unable to fetch data. The request could not be resolved.',
+            name: 'application_error',
+            statusCode: null,
+          },
+        }),
+      );
+      process.env = originalEnv;
+    });
+
+    it('returns an error when api responds with text payload', async () => {
+      fetchMock.mockOnce('local_rate_limited', {
+        status: 422,
+        headers: {},
+      });
+
+      const result = await sendio.broadcasts.create({
+        from: 'example@sendio.com',
+        segmentId: '0192f4f1-d5f9-7110-8eb5-370552515917',
+        subject: 'Hello World',
+        text: 'Hello world',
+      });
+
+      expect(result).toEqual(
+        expect.objectContaining({
+          data: null,
+          error: {
+            message:
+              'Internal server error. We are unable to process your request right now, please try again later.',
+            name: 'application_error',
+            statusCode: 422,
+          },
+        }),
+      );
+    });
+  });
+
+  describe('send', () => {
+    it('sends a broadcast successfully', async () => {
+      const randomBroadcastId = 'b01e0de9-7c27-4a53-bf38-2e3f98389a65';
+      const response = {
+        id: randomBroadcastId,
+      };
+
+      fetchMock.mockOnce(JSON.stringify(response), {
+        status: 200,
+        headers: {
+          'content-type': 'application/json',
+        },
+      });
+
+      const data = await sendio.broadcasts.send(randomBroadcastId);
+
+      expect(data).toMatchInlineSnapshot(`
+        {
+          "data": {
+            "id": "b01e0de9-7c27-4a53-bf38-2e3f98389a65",
+          },
+          "error": null,
+          "headers": {
+            "content-type": "application/json",
+          },
+        }
+      `);
+    });
+  });
+
+  describe('list', () => {
+    const response: ListBroadcastsResponseSuccess = {
+      object: 'list',
+      has_more: false,
+      data: [
+        {
+          id: '49a3999c-0ce1-4ea6-ab68-afcd6dc2e794',
+          audience_id: '78261eea-8f8b-4381-83c6-79fa7120f1cf',
+          segment_id: '78261eea-8f8b-4381-83c6-79fa7120f1cf',
+          name: 'broadcast 1',
+          status: 'draft',
+          created_at: '2024-11-01T15:13:31.723+00:00',
+          scheduled_at: null,
+          sent_at: null,
+        },
+        {
+          id: '559ac32e-9ef5-46fb-82a1-b76b840c0f7b',
+          audience_id: '78261eea-8f8b-4381-83c6-79fa7120f1cf',
+          segment_id: '78261eea-8f8b-4381-83c6-79fa7120f1cf',
+          name: 'broadcast 2',
+          status: 'sent',
+          created_at: '2024-12-01T19:32:22.98+00:00',
+          scheduled_at: '2024-12-02T19:32:22.98+00:00',
+          sent_at: '2024-12-02T19:32:22.98+00:00',
+        },
+      ],
+    };
+
+    describe('when no pagination options are provided', () => {
+      it('lists broadcasts', async () => {
+        mockSuccessResponse(response, {
+          headers: {},
+        });
+
+        const sendio = new Sendio('mx_zKa4RCko_Lhm9ost2YjNCctnPjbLw8Nop');
+
+        const result = await sendio.broadcasts.list();
+        expect(result).toEqual({
+          data: response,
+          error: null,
+          headers: {
+            'content-type': 'application/json',
+          },
+        });
+
+        expect(fetchMock).toHaveBeenCalledWith(
+          'https://api.send.io/broadcasts',
+          expect.objectContaining({
+            method: 'GET',
+            headers: expect.any(Headers),
+          }),
+        );
+      });
+    });
+
+    describe('when pagination options are provided', () => {
+      it('passes limit param and returns a response', async () => {
+        mockSuccessResponse(response, {
+          headers: {},
+        });
+
+        const sendio = new Sendio('mx_zKa4RCko_Lhm9ost2YjNCctnPjbLw8Nop');
+        const result = await sendio.broadcasts.list({ limit: 1 });
+        expect(result).toEqual({
+          data: response,
+          error: null,
+          headers: {
+            'content-type': 'application/json',
+          },
+        });
+
+        expect(fetchMock).toHaveBeenCalledWith(
+          'https://api.send.io/broadcasts?limit=1',
+          expect.objectContaining({
+            method: 'GET',
+            headers: expect.any(Headers),
+          }),
+        );
+      });
+
+      it('passes after param and returns a response', async () => {
+        mockSuccessResponse(response, {
+          headers: {},
+        });
+
+        const sendio = new Sendio('mx_zKa4RCko_Lhm9ost2YjNCctnPjbLw8Nop');
+        const result = await sendio.broadcasts.list({
+          limit: 1,
+          after: 'cursor-value',
+        });
+        expect(result).toEqual({
+          data: response,
+          error: null,
+          headers: {
+            'content-type': 'application/json',
+          },
+        });
+
+        expect(fetchMock).toHaveBeenCalledWith(
+          'https://api.send.io/broadcasts?limit=1&after=cursor-value',
+          expect.objectContaining({
+            method: 'GET',
+            headers: expect.any(Headers),
+          }),
+        );
+      });
+
+      it('passes before param and returns a response', async () => {
+        mockSuccessResponse(response, {
+          headers: {},
+        });
+
+        const sendio = new Sendio('mx_zKa4RCko_Lhm9ost2YjNCctnPjbLw8Nop');
+        const result = await sendio.broadcasts.list({
+          limit: 1,
+          before: 'cursor-value',
+        });
+        expect(result).toEqual({
+          data: response,
+          error: null,
+          headers: {
+            'content-type': 'application/json',
+          },
+        });
+
+        expect(fetchMock).toHaveBeenCalledWith(
+          'https://api.send.io/broadcasts?limit=1&before=cursor-value',
+          expect.objectContaining({
+            method: 'GET',
+            headers: expect.any(Headers),
+          }),
+        );
+      });
+    });
+  });
+
+  describe('get', () => {
+    describe('when broadcast not found', () => {
+      it('returns error', async () => {
+        const response: ErrorResponse = {
+          name: 'not_found',
+          statusCode: 404,
+          message: 'Broadcast not found',
+        };
+
+        fetchMock.mockOnce(JSON.stringify(response), {
+          status: 404,
+          headers: {
+            'content-type': 'application/json',
+          },
+        });
+
+        const sendio = new Sendio('mx_zKa4RCko_Lhm9ost2YjNCctnPjbLw8Nop');
+
+        const result = sendio.broadcasts.get(
+          '559ac32e-9ef5-46fb-82a1-b76b840c0f7b',
+        );
+
+        await expect(result).resolves.toMatchInlineSnapshot(`
+          {
+            "data": null,
+            "error": {
+              "message": "Broadcast not found",
+              "name": "not_found",
+              "statusCode": 404,
+            },
+            "headers": {
+              "content-type": "application/json",
+            },
+          }
+        `);
+      });
+    });
+
+    it('get broadcast', async () => {
+      const response: GetBroadcastResponseSuccess = {
+        object: 'broadcast',
+        id: '559ac32e-9ef5-46fb-82a1-b76b840c0f7b',
+        name: 'Announcements',
+        segment_id: '78261eea-8f8b-4381-83c6-79fa7120f1cf',
+        audience_id: '78261eea-8f8b-4381-83c6-79fa7120f1cf',
+        from: 'Acme <onboarding@send.io>',
+        html: '<h1>Hello world</h1>',
+        subject: 'hello world',
+        reply_to: null,
+        preview_text: 'Check out our latest announcements',
+        status: 'draft',
+        created_at: '2024-12-01T19:32:22.98+00:00',
+        scheduled_at: null,
+        sent_at: null,
+        topic_id: '9f31e56e-3083-46cf-8e96-c6995e0e576a',
+        text: 'Hello world',
+      };
+
+      fetchMock.mockOnce(JSON.stringify(response), {
+        status: 200,
+        headers: {
+          'content-type': 'application/json',
+        },
+      });
+
+      const sendio = new Sendio('mx_zKa4RCko_Lhm9ost2YjNCctnPjbLw8Nop');
+
+      await expect(
+        sendio.broadcasts.get('559ac32e-9ef5-46fb-82a1-b76b840c0f7b'),
+      ).resolves.toMatchInlineSnapshot(`
+        {
+          "data": {
+            "audience_id": "78261eea-8f8b-4381-83c6-79fa7120f1cf",
+            "created_at": "2024-12-01T19:32:22.98+00:00",
+            "from": "Acme <onboarding@send.io>",
+            "html": "<h1>Hello world</h1>",
+            "id": "559ac32e-9ef5-46fb-82a1-b76b840c0f7b",
+            "name": "Announcements",
+            "object": "broadcast",
+            "preview_text": "Check out our latest announcements",
+            "reply_to": null,
+            "scheduled_at": null,
+            "segment_id": "78261eea-8f8b-4381-83c6-79fa7120f1cf",
+            "sent_at": null,
+            "status": "draft",
+            "subject": "hello world",
+            "text": "Hello world",
+            "topic_id": "9f31e56e-3083-46cf-8e96-c6995e0e576a",
+          },
+          "error": null,
+          "headers": {
+            "content-type": "application/json",
+          },
+        }
+      `);
+    });
+  });
+
+  describe('recipients', () => {
+    describe('when broadcast not found', () => {
+      it('returns error', async () => {
+        const response: ErrorResponse = {
+          name: 'not_found',
+          statusCode: 404,
+          message: 'Broadcast not found',
+        };
+
+        fetchMock.mockOnce(JSON.stringify(response), {
+          status: 404,
+          headers: {
+            'content-type': 'application/json',
+          },
+        });
+
+        const sendio = new Sendio('mx_zKa4RCko_Lhm9ost2YjNCctnPjbLw8Nop');
+
+        const result = sendio.broadcasts.recipients(
+          '559ac32e-9ef5-46fb-82a1-b76b840c0f7b',
+          { type: 'clicked' },
+        );
+
+        await expect(result).resolves.toMatchInlineSnapshot(`
+          {
+            "data": null,
+            "error": {
+              "message": "Broadcast not found",
+              "name": "not_found",
+              "statusCode": 404,
+            },
+            "headers": {
+              "content-type": "application/json",
+            },
+          }
+        `);
+      });
+    });
+
+    it('lists broadcast recipients filtered by type', async () => {
+      const response: ListBroadcastRecipientsResponseSuccess<'clicked'> = {
+        object: 'list',
+        has_more: true,
+        data: [
+          {
+            id: 'b2Zmc2V0OjA',
+            contact_id: 'e169aa45-1ecf-4183-9955-b1499d5701d3',
+            email: 'carter@example.com',
+            count: 3,
+            clicked_links: [
+              { url: 'https://send.io/pricing', clicks: 2 },
+              { url: 'https://developer.send.io/docs/api', clicks: 1 },
+            ],
+          },
+          {
+            id: 'b2Zmc2V0OjE',
+            contact_id: null,
+            email: 'dana@example.com',
+            count: 1,
+            clicked_links: [{ url: 'https://send.io/pricing', clicks: 1 }],
+          },
+        ],
+      };
+
+      fetchMock.mockOnce(JSON.stringify(response), {
+        status: 200,
+        headers: {
+          'content-type': 'application/json',
+        },
+      });
+
+      const sendio = new Sendio('mx_zKa4RCko_Lhm9ost2YjNCctnPjbLw8Nop');
+
+      const result = await sendio.broadcasts.recipients(
+        '559ac32e-9ef5-46fb-82a1-b76b840c0f7b',
+        { type: 'clicked', limit: 20 },
+      );
+
+      expect(result).toEqual({
+        data: response,
+        error: null,
+        headers: {
+          'content-type': 'application/json',
+        },
+      });
+
+      expect(fetchMock).toHaveBeenCalledWith(
+        'https://api.send.io/broadcasts/559ac32e-9ef5-46fb-82a1-b76b840c0f7b/recipients?limit=20&type=clicked',
+        expect.objectContaining({
+          method: 'GET',
+          headers: expect.any(Headers),
+        }),
+      );
+    });
+
+    it('passes email and bounceType filters', async () => {
+      const response: ListBroadcastRecipientsResponseSuccess<'bounced'> = {
+        object: 'list',
+        has_more: false,
+        data: [
+          {
+            id: 'b2Zmc2V0OjA',
+            contact_id: null,
+            email: 'bounced@example.com',
+            bounce_type: 'permanent',
+          },
+        ],
+      };
+
+      fetchMock.mockOnce(JSON.stringify(response), {
+        status: 200,
+        headers: {
+          'content-type': 'application/json',
+        },
+      });
+
+      const sendio = new Sendio('mx_zKa4RCko_Lhm9ost2YjNCctnPjbLw8Nop');
+
+      const result = await sendio.broadcasts.recipients(
+        '559ac32e-9ef5-46fb-82a1-b76b840c0f7b',
+        {
+          type: 'bounced',
+          email: 'bounced@example.com',
+          bounceType: 'permanent',
+        },
+      );
+
+      expect(result).toEqual({
+        data: response,
+        error: null,
+        headers: {
+          'content-type': 'application/json',
+        },
+      });
+
+      expect(fetchMock).toHaveBeenCalledWith(
+        'https://api.send.io/broadcasts/559ac32e-9ef5-46fb-82a1-b76b840c0f7b/recipients?type=bounced&email=bounced%40example.com&bounce_type=permanent',
+        expect.objectContaining({
+          method: 'GET',
+          headers: expect.any(Headers),
+        }),
+      );
+    });
+
+    it('passes after cursor for pagination', async () => {
+      const response: ListBroadcastRecipientsResponseSuccess = {
+        object: 'list',
+        has_more: false,
+        data: [],
+      };
+
+      fetchMock.mockOnce(JSON.stringify(response), {
+        status: 200,
+        headers: {
+          'content-type': 'application/json',
+        },
+      });
+
+      const sendio = new Sendio('mx_zKa4RCko_Lhm9ost2YjNCctnPjbLw8Nop');
+
+      await sendio.broadcasts.recipients(
+        '559ac32e-9ef5-46fb-82a1-b76b840c0f7b',
+        { type: 'opened', limit: 10, after: 'cursor-value' },
+      );
+
+      expect(fetchMock).toHaveBeenCalledWith(
+        'https://api.send.io/broadcasts/559ac32e-9ef5-46fb-82a1-b76b840c0f7b/recipients?limit=10&after=cursor-value&type=opened',
+        expect.objectContaining({
+          method: 'GET',
+          headers: expect.any(Headers),
+        }),
+      );
+    });
+
+    it('passes before cursor for pagination', async () => {
+      const response: ListBroadcastRecipientsResponseSuccess = {
+        object: 'list',
+        has_more: false,
+        data: [],
+      };
+
+      fetchMock.mockOnce(JSON.stringify(response), {
+        status: 200,
+        headers: {
+          'content-type': 'application/json',
+        },
+      });
+
+      const sendio = new Sendio('mx_zKa4RCko_Lhm9ost2YjNCctnPjbLw8Nop');
+
+      await sendio.broadcasts.recipients(
+        '559ac32e-9ef5-46fb-82a1-b76b840c0f7b',
+        { type: 'opened', limit: 10, before: 'cursor-value' },
+      );
+
+      expect(fetchMock).toHaveBeenCalledWith(
+        'https://api.send.io/broadcasts/559ac32e-9ef5-46fb-82a1-b76b840c0f7b/recipients?limit=10&before=cursor-value&type=opened',
+        expect.objectContaining({
+          method: 'GET',
+          headers: expect.any(Headers),
+        }),
+      );
+    });
+  });
+
+  describe('clickedLinks', () => {
+    const response: ListBroadcastClickedLinksResponseSuccess = {
+      object: 'list',
+      has_more: false,
+      data: [
+        {
+          id: 'b2Zmc2V0OjA',
+          url: 'https://send.io/pricing',
+          clicks: 42,
+          unique_clicks: 30,
+        },
+        {
+          id: 'b2Zmc2V0OjE',
+          url: 'https://developer.send.io/docs/api',
+          clicks: 17,
+          unique_clicks: 15,
+        },
+      ],
+    };
+
+    describe('when no pagination options are provided', () => {
+      it('lists clicked links', async () => {
+        mockSuccessResponse(response, {
+          headers: {},
+        });
+
+        const sendio = new Sendio('mx_zKa4RCko_Lhm9ost2YjNCctnPjbLw8Nop');
+
+        const result = await sendio.broadcasts.clickedLinks(
+          '559ac32e-9ef5-46fb-82a1-b76b840c0f7b',
+        );
+        expect(result).toEqual({
+          data: response,
+          error: null,
+          headers: {
+            'content-type': 'application/json',
+          },
+        });
+
+        expect(fetchMock).toHaveBeenCalledWith(
+          'https://api.send.io/broadcasts/559ac32e-9ef5-46fb-82a1-b76b840c0f7b/clicked-links',
+          expect.objectContaining({
+            method: 'GET',
+            headers: expect.any(Headers),
+          }),
+        );
+      });
+    });
+
+    describe('when pagination options are provided', () => {
+      it('passes limit param and returns a response', async () => {
+        mockSuccessResponse(response, {
+          headers: {},
+        });
+
+        const sendio = new Sendio('mx_zKa4RCko_Lhm9ost2YjNCctnPjbLw8Nop');
+        const result = await sendio.broadcasts.clickedLinks(
+          '559ac32e-9ef5-46fb-82a1-b76b840c0f7b',
+          { limit: 1 },
+        );
+        expect(result).toEqual({
+          data: response,
+          error: null,
+          headers: {
+            'content-type': 'application/json',
+          },
+        });
+
+        expect(fetchMock).toHaveBeenCalledWith(
+          'https://api.send.io/broadcasts/559ac32e-9ef5-46fb-82a1-b76b840c0f7b/clicked-links?limit=1',
+          expect.objectContaining({
+            method: 'GET',
+            headers: expect.any(Headers),
+          }),
+        );
+      });
+
+      it('passes after param and returns a response', async () => {
+        mockSuccessResponse(response, {
+          headers: {},
+        });
+
+        const sendio = new Sendio('mx_zKa4RCko_Lhm9ost2YjNCctnPjbLw8Nop');
+        const result = await sendio.broadcasts.clickedLinks(
+          '559ac32e-9ef5-46fb-82a1-b76b840c0f7b',
+          { limit: 1, after: 'cursor-value' },
+        );
+        expect(result).toEqual({
+          data: response,
+          error: null,
+          headers: {
+            'content-type': 'application/json',
+          },
+        });
+
+        expect(fetchMock).toHaveBeenCalledWith(
+          'https://api.send.io/broadcasts/559ac32e-9ef5-46fb-82a1-b76b840c0f7b/clicked-links?limit=1&after=cursor-value',
+          expect.objectContaining({
+            method: 'GET',
+            headers: expect.any(Headers),
+          }),
+        );
+      });
+
+      it('passes before param and returns a response', async () => {
+        mockSuccessResponse(response, {
+          headers: {},
+        });
+
+        const sendio = new Sendio('mx_zKa4RCko_Lhm9ost2YjNCctnPjbLw8Nop');
+        const result = await sendio.broadcasts.clickedLinks(
+          '559ac32e-9ef5-46fb-82a1-b76b840c0f7b',
+          { limit: 1, before: 'cursor-value' },
+        );
+        expect(result).toEqual({
+          data: response,
+          error: null,
+          headers: {
+            'content-type': 'application/json',
+          },
+        });
+
+        expect(fetchMock).toHaveBeenCalledWith(
+          'https://api.send.io/broadcasts/559ac32e-9ef5-46fb-82a1-b76b840c0f7b/clicked-links?limit=1&before=cursor-value',
+          expect.objectContaining({
+            method: 'GET',
+            headers: expect.any(Headers),
+          }),
+        );
+      });
+    });
+  });
+
+  describe('remove', () => {
+    it('removes a broadcast', async () => {
+      const id = 'b01e0de9-7c27-4a53-bf38-2e3f98389a65';
+      const response: RemoveBroadcastResponseSuccess = {
+        object: 'broadcast',
+        id,
+        deleted: true,
+      };
+      fetchMock.mockOnce(JSON.stringify(response), {
+        status: 200,
+        headers: {
+          'content-type': 'application/json',
+        },
+      });
+
+      const sendio = new Sendio('mx_zKa4RCko_Lhm9ost2YjNCctnPjbLw8Nop');
+
+      await expect(
+        sendio.broadcasts.remove(id),
+      ).resolves.toMatchInlineSnapshot(`
+        {
+          "data": {
+            "deleted": true,
+            "id": "b01e0de9-7c27-4a53-bf38-2e3f98389a65",
+            "object": "broadcast",
+          },
+          "error": null,
+          "headers": {
+            "content-type": "application/json",
+          },
+        }
+      `);
+    });
+  });
+
+  describe('pause and resume', () => {
+    it('posts to /pause and /resume and returns the broadcast', async () => {
+      const id = 'b01e0de9-7c27-4a53-bf38-2e3f98389a65';
+      const paused = { object: 'broadcast', id, status: 'queued', paused_at: '2026-11-16T10:00:00Z' };
+      fetchMock.mockOnce(JSON.stringify(paused), { status: 200, headers: { 'content-type': 'application/json' } });
+      const p = await sendio.broadcasts.pause(id);
+      expect(p.data?.paused_at).toBe('2026-11-16T10:00:00Z');
+      expect(fetchMock.mock.calls[0]![0]).toBe(`https://api.send.io/broadcasts/${id}/pause`);
+      expect(fetchMock.mock.calls[0]![1]?.method).toBe('POST');
+
+      fetchMock.mockOnce(JSON.stringify({ ...paused, paused_at: null }), { status: 200, headers: { 'content-type': 'application/json' } });
+      const r = await sendio.broadcasts.resume(id);
+      expect(r.data?.paused_at).toBeNull();
+      expect(fetchMock.mock.calls[1]![0]).toBe(`https://api.send.io/broadcasts/${id}/resume`);
+    });
+
+    it('returns the 409 when the broadcast is not sending', async () => {
+      const error: ErrorResponse = { name: 'conflict', statusCode: 409, message: 'Only a broadcast that is sending can be paused.' };
+      fetchMock.mockOnce(JSON.stringify(error), { status: 409, headers: { 'content-type': 'application/json' } });
+      const p = await sendio.broadcasts.pause('b01e0de9-7c27-4a53-bf38-2e3f98389a65');
+      expect(p.data).toBeNull();
+      expect(p.error?.message).toBe('Only a broadcast that is sending can be paused.');
+    });
+  });
+
+  describe('cancel', () => {
+    it('cancels a broadcast', async () => {
+      const id = 'b01e0de9-7c27-4a53-bf38-2e3f98389a65';
+      const response: CancelBroadcastResponseSuccess = {
+        object: 'broadcast',
+        id,
+      };
+      fetchMock.mockOnce(JSON.stringify(response), {
+        status: 200,
+        headers: {
+          'content-type': 'application/json',
+        },
+      });
+
+      const sendio = new Sendio('mx_zKa4RCko_Lhm9ost2YjNCctnPjbLw8Nop');
+
+      await expect(
+        sendio.broadcasts.cancel(id),
+      ).resolves.toMatchInlineSnapshot(`
+        {
+          "data": {
+            "id": "b01e0de9-7c27-4a53-bf38-2e3f98389a65",
+            "object": "broadcast",
+          },
+          "error": null,
+          "headers": {
+            "content-type": "application/json",
+          },
+        }
+      `);
+    });
+
+    describe('when broadcast is not cancelable', () => {
+      it('returns error', async () => {
+        const response: ErrorResponse = {
+          name: 'validation_error',
+          statusCode: 403,
+          message: 'Only queued or scheduled broadcasts can be canceled',
+        };
+
+        fetchMock.mockOnce(JSON.stringify(response), {
+          status: 403,
+          headers: {
+            'content-type': 'application/json',
+          },
+        });
+
+        const sendio = new Sendio('mx_zKa4RCko_Lhm9ost2YjNCctnPjbLw8Nop');
+
+        const result = sendio.broadcasts.cancel(
+          '559ac32e-9ef5-46fb-82a1-b76b840c0f7b',
+        );
+
+        await expect(result).resolves.toMatchInlineSnapshot(`
+          {
+            "data": null,
+            "error": {
+              "message": "Only queued or scheduled broadcasts can be canceled",
+              "name": "validation_error",
+              "statusCode": 403,
+            },
+            "headers": {
+              "content-type": "application/json",
+            },
+          }
+        `);
+      });
+    });
+  });
+
+  describe('duplicate', () => {
+    it('duplicates a broadcast', async () => {
+      const response: DuplicateBroadcastResponseSuccess = {
+        object: 'broadcast',
+        id: '1f85ae38-f5b9-4c1f-8766-667a53970fea',
+      };
+      fetchMock.mockOnce(JSON.stringify(response), {
+        status: 201,
+        headers: {
+          'content-type': 'application/json',
+        },
+      });
+
+      await expect(
+        sendio.broadcasts.duplicate('e6bd3843-3cc7-4c0d-b7fd-e01cbb514a16'),
+      ).resolves.toMatchInlineSnapshot(`
+        {
+          "data": {
+            "id": "1f85ae38-f5b9-4c1f-8766-667a53970fea",
+            "object": "broadcast",
+          },
+          "error": null,
+          "headers": {
+            "content-type": "application/json",
+          },
+        }
+      `);
+
+      expect(fetchMock).toHaveBeenCalledWith(
+        'https://api.send.io/broadcasts/e6bd3843-3cc7-4c0d-b7fd-e01cbb514a16/duplicate',
+        expect.objectContaining({ method: 'POST' }),
+      );
+    });
+  });
+
+  describe('update', () => {
+    it('updates a broadcast', async () => {
+      const id = 'b01e0de9-7c27-4a53-bf38-2e3f98389a65';
+      const response: UpdateBroadcastResponseSuccess = { id };
+      fetchMock.mockOnce(JSON.stringify(response), {
+        status: 200,
+        headers: {
+          'content-type': 'application/json',
+        },
+      });
+
+      const sendio = new Sendio('mx_zKa4RCko_Lhm9ost2YjNCctnPjbLw8Nop');
+
+      await expect(
+        sendio.broadcasts.update(id, { name: 'New Name' }),
+      ).resolves.toMatchInlineSnapshot(`
+        {
+          "data": {
+            "id": "b01e0de9-7c27-4a53-bf38-2e3f98389a65",
+          },
+          "error": null,
+          "headers": {
+            "content-type": "application/json",
+          },
+        }
+      `);
+    });
+  });
+});

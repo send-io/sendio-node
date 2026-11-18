@@ -1,0 +1,81 @@
+{
+  "ack": {
+    "address": "praveen@instantly.sendioinbox.com",
+    "input": "sendio-free-ack-v1:1760000000:praveen@instantly.sendioinbox.com:42",
+    "seq": 42,
+    "signature": "hk/2CUk4kgfzGpNy/Ra/aHL6sRoakV5GR7bC93iCTzJpkChQAGPKIijqR6JD+/y7Uyov4s6Ug7z18x6pLeipBA==",
+    "ts": 1760000000
+  },
+  "addresses": [
+    {
+      "input": "praveen@instantly.sendioinbox.com",
+      "normalised": "praveen@instantly.sendioinbox.com",
+      "token": "f1c202633342b0ce3a62541d0b807581",
+      "org_key": "sendioinbox_com__instantly"
+    },
+    {
+      "input": "  Ágent_Smith@ACME.sendioinbox.com",
+      "normalised": "agent-smith@acme.sendioinbox.com",
+      "token": "0d1e7c1eb1683d7e0427aef1c374ae74",
+      "org_key": "sendioinbox_com__acme"
+    },
+    {
+      "input": "Test Bot@My-Org.SendioInbox.com",
+      "normalised": "test-bot@my-org.sendioinbox.com",
+      "token": "291d9421a033e53b02e91cc4358a9119",
+      "org_key": "sendioinbox_com__my-org"
+    }
+  ],
+  "auth": {
+    "address": "praveen@instantly.sendioinbox.com",
+    "input": "sendio-free-auth-v1:gIGCg4SFhoeIiYqLjI2Oj5CRkpOUlZaXmJmam5ydnp8=:praveen@instantly.sendioinbox.com",
+    "nonce": "gIGCg4SFhoeIiYqLjI2Oj5CRkpOUlZaXmJmam5ydnp8=",
+    "signature": "mL51SWIuXa7d0t0sYM8E3Qfd5GgcbK/SvtzghEspNrWLytnguRx2ffD2zcqFH3l9GvhVNvxpQ/cXa26IrI2JBw=="
+  },
+  "envelope": {
+    "envelope_b64": "U0IxeaYx7t4b+cmPEgMs3q3Q56B5OY/HhriMyEbsia+FpRpgYWJjZGVmZ2hpamtsbW5vcHFyc3R1dncr3Nyd0SDjYDTUofwZsY106TrTpU5iYDizDEjsUCajiXqm7MltvYSuzrqy4g+LFYr6YggIzxQCltgJB1/0Vem5e9TkR/tYBiT/gBRXYGI6Ak17Cijn1B0qQv6bqcVf1HUqNjwM0/6+mdNBbuJz1ykjI6qTUkApO3SqZAT3lz0X",
+    "esk_hex": "404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f",
+    "nonce_hex": "606162636465666768696a6b6c6d6e6f7071727374757677",
+    "plaintext_utf8": "From: sender@example.com\r\nTo: praveen@instantly.sendioinbox.com\r\nSubject: Hello agent\r\n\r\nYour code is 123456.\r\n",
+    "recipient_box_pub": "lRRZZWH2gJfBXw39l7U3ND5mLhi91IENmQ0KMKsnNAI="
+  },
+  "notes": "All base64 is standard with padding. Signatures are Ed25519 (deterministic) by seeds[0]. Envelope = 'SB1'||epk||nonce||nacl.box(plaintext, nonce, recipient box_pub, esk); recipient is seeds[0].",
+  "org_sig": {
+    "address": "second@instantly.sendioinbox.com",
+    "input": "sendio-free-org-v1:second@instantly.sendioinbox.com",
+    "signature": "UQpw17Zh3iL8wgnjAwHoV3qhSviJJr1kjIY7Zxrm8i+BjZZkrlB3lpDBrPcNnHAUlvl8dLRXz2/V3D7PMc95Dw=="
+  },
+  "poll": {
+    "address": "praveen@instantly.sendioinbox.com",
+    "input": "sendio-free-poll-v1:1760000000:praveen@instantly.sendioinbox.com",
+    "signature": "AOFAzKxH706lcspQUVaKrTHU5PGGCnRQA9OMrKK29FDvVzz/oBredSZBGJI9ruZhqWgv/JjVsq6wGmFh8G8fDw==",
+    "ts": 1760000000
+  },
+  "pow": {
+    "challenge": "00112233445566778899aabbccddeeff",
+    "difficulty": 8,
+    "hash_input": "00112233445566778899aabbccddeeff:55",
+    "nonce": "55"
+  },
+  "seeds": [
+    {
+      "seed_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "sign_pub": "A6EHv/POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg=",
+      "box_pub": "lRRZZWH2gJfBXw39l7U3ND5mLhi91IENmQ0KMKsnNAI=",
+      "box_sk": "QAxwgbS0ofekC0EFLyNZ81Mw9Gl0JdTjB6bNbn4aHeQ=",
+      "recovery_phrase": "aaaq-eaye-auda-ocaj-bifq-ydio-b4ib-ceqt-cqkr-mfyy-denb-wha5-dypq",
+      "sign_pub_hex": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+      "box_pub_hex": "9514596561f68097c15f0dfd97b537343e662e18bdd4810d990d0a30ab273402"
+    },
+    {
+      "seed_hex": "202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f",
+      "sign_pub": "Kay64UG8yvCyLhqU000LxzYeUm0L/hLIl5S8kyKWbdc=",
+      "box_pub": "pMDkxko4CK2PEythL6qmYoAeJ9wQknwqGkWX8HFK8zA=",
+      "box_sk": "AlGhrPZzqZVcD9DcB3TSHvjb3V+olsLyTZA7kFfLtgA=",
+      "recovery_phrase": "eaqs-eize-eutc-okbj-fivs-yljo-f4yd-cmrt-gq2t-mnzy-he5d-wpb5-hy7q",
+      "sign_pub_hex": "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7",
+      "box_pub_hex": "a4c0e4c64a3808ad8f132b612faaa662801e27dc10927c2a1a4597f0714af330"
+    }
+  ],
+  "version": 1
+}

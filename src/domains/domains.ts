@@ -1,0 +1,115 @@
+import type { RequestOptions } from '../common/interfaces/request-options.interface';
+import { buildPaginationUrl } from '../common/utils/build-pagination-query';
+import { parseDomainToApiOptions } from '../common/utils/parse-domain-to-api-options';
+import type { Sendio } from '../sendio';
+import type {
+  CreateDomainOptions,
+  CreateDomainRequestOptions,
+  CreateDomainResponse,
+  CreateDomainResponseSuccess,
+} from './interfaces/create-domain-options.interface';
+import type {
+  GetDomainResponse,
+  GetDomainResponseSuccess,
+} from './interfaces/get-domain.interface';
+import type {
+  ListDomainsOptions,
+  ListDomainsResponse,
+  ListDomainsResponseSuccess,
+} from './interfaces/list-domains.interface';
+import type {
+  RemoveDomainsResponse,
+  RemoveDomainsResponseSuccess,
+} from './interfaces/remove-domain.interface';
+import type {
+  UpdateDomainsOptions,
+  UpdateDomainsResponse,
+  UpdateDomainsResponseSuccess,
+} from './interfaces/update-domain.interface';
+import type {
+  VerifyDomainsResponse,
+  VerifyDomainsResponseSuccess,
+} from './interfaces/verify-domain.interface';
+
+export class Domains {
+  constructor(private readonly sendio: Sendio) {}
+
+  async create(
+    payload: CreateDomainOptions,
+    requestOptions: CreateDomainRequestOptions = {},
+  ): Promise<CreateDomainResponse> {
+    const data = await this.sendio.post<CreateDomainResponseSuccess>(
+      '/domains',
+      parseDomainToApiOptions(payload),
+      requestOptions,
+    );
+    return data;
+  }
+
+  async list(
+    options: ListDomainsOptions = {},
+    requestOptions: RequestOptions = {},
+  ): Promise<ListDomainsResponse> {
+    const url = buildPaginationUrl('/domains', options);
+
+    const data = await this.sendio.get<ListDomainsResponseSuccess>(
+      url,
+      requestOptions,
+    );
+    return data;
+  }
+
+  async get(
+    id: string,
+    requestOptions: RequestOptions = {},
+  ): Promise<GetDomainResponse> {
+    const data = await this.sendio.get<GetDomainResponseSuccess>(
+      `/domains/${id}`,
+      requestOptions,
+    );
+
+    return data;
+  }
+
+  async update(
+    payload: UpdateDomainsOptions,
+    requestOptions: RequestOptions = {},
+  ): Promise<UpdateDomainsResponse> {
+    const data = await this.sendio.patch<UpdateDomainsResponseSuccess>(
+      `/domains/${payload.id}`,
+      {
+        click_tracking: payload.clickTracking,
+        open_tracking: payload.openTracking,
+        tls: payload.tls,
+        capabilities: payload.capabilities,
+        tracking_subdomain: payload.trackingSubdomain,
+      },
+      requestOptions,
+    );
+    return data;
+  }
+
+  async remove(
+    id: string,
+    requestOptions: RequestOptions = {},
+  ): Promise<RemoveDomainsResponse> {
+    const data = await this.sendio.delete<RemoveDomainsResponseSuccess>(
+      `/domains/${id}`,
+      undefined,
+      requestOptions,
+    );
+    return data;
+  }
+
+  async verify(
+    id: string,
+    requestOptions: RequestOptions = {},
+  ): Promise<VerifyDomainsResponse> {
+    const data = await this.sendio.post<VerifyDomainsResponseSuccess>(
+      `/domains/${id}/verify`,
+      undefined,
+      requestOptions,
+    );
+    return data;
+  }
+}

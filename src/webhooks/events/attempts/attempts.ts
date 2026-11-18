@@ -1,0 +1,30 @@
+import type { RequestOptions } from '../../../common/interfaces/request-options.interface';
+import { buildPaginationUrl } from '../../../common/utils/build-pagination-query';
+import type { Sendio } from '../../../sendio';
+import type {
+  ListWebhookEventAttemptsOptions,
+  ListWebhookEventAttemptsResponse,
+  ListWebhookEventAttemptsResponseSuccess,
+} from '../../interfaces/list-webhook-event-attempts.interface';
+
+export class Attempts {
+  constructor(private readonly sendio: Sendio) {}
+
+  async list(
+    options: ListWebhookEventAttemptsOptions,
+    requestOptions: RequestOptions = {},
+  ): Promise<ListWebhookEventAttemptsResponse> {
+    const { webhookId, eventId } = options;
+
+    const url = buildPaginationUrl(
+      `/webhooks/${webhookId}/events/${eventId}/attempts`,
+      options,
+    );
+
+    const data = await this.sendio.get<ListWebhookEventAttemptsResponseSuccess>(
+      url,
+      requestOptions,
+    );
+    return data;
+  }
+}

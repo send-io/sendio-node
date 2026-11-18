@@ -1,0 +1,54 @@
+import type { EmailApiOptions } from '../common/interfaces/email-api-options.interface';
+import { parseEmailToApiOptions } from '../common/utils/parse-email-to-api-options';
+import { render } from '../render';
+import type { Sendio } from '../sendio';
+import type {
+  CreateBatchOptions,
+  CreateBatchRequestOptions,
+  CreateBatchResponse,
+  CreateBatchSuccessResponse,
+} from './interfaces/create-batch-options.interface';
+
+export class Batch {
+  constructor(private readonly sendio: Sendio) {}
+
+  async send<Options extends CreateBatchRequestOptions>(
+    payload: CreateBatchOptions,
+    requestOptions?: Options,
+  ): Promise<CreateBatchResponse<Options>> {
+    return this.create(payload, requestOptions);
+  }
+
+  async create<Options extends CreateBatchRequestOptions>(
+    payload: CreateBatchOptions,
+    requestOptions?: Options,
+  ): Promise<CreateBatchResponse<Options>> {
+    const emails: EmailApiOptions[] = [];
+
+    for (const email of payload) {
+      if (email.react) {
+        email.html = await render(email.react);
+        email.react = undefined;
+      }
+
+      emails.push(parseEmailToApiOptions(email));
+    }
+
+    const headers = new Headers({
+      'x-batch-validation': requestOptions?.batchValidation ?? 'strict',
+    });
+    for (const [key, value] of new Headers(
+      requestOptions?.headers || undefined,
+    )) {
+      headers.set(key, value);
+    }
+
+    const data = await this.sendio.post<CreateBatchSuccessResponse<Options>>(
+      '/emails/batch',
+      emails,
+      { ...requestOptions, headers },
+    );
+
+    return data;
+  }
+}

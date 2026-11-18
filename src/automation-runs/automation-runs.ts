@@ -1,0 +1,54 @@
+import type { RequestOptions } from '../common/interfaces/request-options.interface';
+import { buildPaginationQuery } from '../common/utils/build-pagination-query';
+import type { Sendio } from '../sendio';
+import type {
+  GetAutomationRunOptions,
+  GetAutomationRunResponse,
+  GetAutomationRunResponseSuccess,
+} from './interfaces/get-automation-run.interface';
+import type {
+  ListAutomationRunsOptions,
+  ListAutomationRunsResponse,
+  ListAutomationRunsResponseSuccess,
+} from './interfaces/list-automation-runs.interface';
+
+export class AutomationRuns {
+  constructor(private readonly sendio: Sendio) {}
+
+  async get(
+    options: GetAutomationRunOptions,
+    requestOptions: RequestOptions = {},
+  ): Promise<GetAutomationRunResponse> {
+    const data = await this.sendio.get<GetAutomationRunResponseSuccess>(
+      `/automations/${options.automationId}/runs/${options.runId}`,
+      requestOptions,
+    );
+    return data;
+  }
+
+  async list(
+    options: ListAutomationRunsOptions,
+    requestOptions: RequestOptions = {},
+  ): Promise<ListAutomationRunsResponse> {
+    const queryString = buildPaginationQuery(options);
+    const searchParams = new URLSearchParams(queryString);
+
+    if (options.status) {
+      const statusValue = Array.isArray(options.status)
+        ? options.status.join(',')
+        : options.status;
+      searchParams.set('status', statusValue);
+    }
+
+    const qs = searchParams.toString();
+    const url = qs
+      ? `/automations/${options.automationId}/runs?${qs}`
+      : `/automations/${options.automationId}/runs`;
+
+    const data = await this.sendio.get<ListAutomationRunsResponseSuccess>(
+      url,
+      requestOptions,
+    );
+    return data;
+  }
+}

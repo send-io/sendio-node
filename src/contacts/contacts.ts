@@ -1,0 +1,246 @@
+import type { RequestOptions } from '../common/interfaces/request-options.interface';
+import { buildPaginationUrl } from '../common/utils/build-pagination-query';
+import type { Sendio } from '../sendio';
+import { ContactImports } from './imports/contact-imports';
+import type {
+  CreateContactOptions,
+  CreateContactRequestOptions,
+  CreateContactResponse,
+  CreateContactResponseSuccess,
+  LegacyCreateContactOptions,
+} from './interfaces/create-contact-options.interface';
+import type {
+  GetContactOptions,
+  GetContactResponse,
+  GetContactResponseSuccess,
+} from './interfaces/get-contact.interface';
+import type {
+  ListContactsOptions,
+  ListContactsResponse,
+  ListContactsResponseSuccess,
+} from './interfaces/list-contacts.interface';
+import type {
+  RemoveContactOptions,
+  RemoveContactsResponse,
+  RemoveContactsResponseSuccess,
+} from './interfaces/remove-contact.interface';
+import type {
+  UpdateContactOptions,
+  UpdateContactResponse,
+  UpdateContactResponseSuccess,
+} from './interfaces/update-contact.interface';
+import { ContactSegments } from './segments/contact-segments';
+import { ContactTopics } from './topics/contact-topics';
+
+export class Contacts {
+  readonly imports: ContactImports;
+  readonly topics: ContactTopics;
+  readonly segments: ContactSegments;
+
+  constructor(private readonly sendio: Sendio) {
+    this.imports = new ContactImports(this.sendio);
+    this.topics = new ContactTopics(this.sendio);
+    this.segments = new ContactSegments(this.sendio);
+  }
+
+  async create(
+    payload: CreateContactOptions,
+    requestOptions?: CreateContactRequestOptions,
+  ): Promise<CreateContactResponse>;
+  async create(
+    payload: LegacyCreateContactOptions,
+    requestOptions?: CreateContactRequestOptions,
+  ): Promise<CreateContactResponse>;
+
+  async create(
+    payload: CreateContactOptions | LegacyCreateContactOptions,
+    requestOptions: CreateContactRequestOptions = {},
+  ): Promise<CreateContactResponse> {
+    // Legacy create contact endpoint
+    if ('audienceId' in payload) {
+      if ('segments' in payload || 'topics' in payload) {
+        return {
+          data: null,
+          headers: null,
+          error: {
+            message:
+              '`audienceId` is deprecated, and cannot be used together with `segments` or `topics`. Use `segments` instead to add one or more segments to the new contact.',
+            statusCode: null,
+            name: 'invalid_parameter',
+          },
+        };
+      }
+
+      const data = await this.sendio.post<CreateContactResponseSuccess>(
+        `/audiences/${payload.audienceId}/contacts`,
+        {
+          unsubscribed: payload.unsubscribed,
+          email: payload.email,
+          first_name: payload.firstName,
+          last_name: payload.lastName,
+          properties: payload.properties,
+        },
+        requestOptions,
+      );
+      return data;
+    }
+
+    // Current create contact endpoint
+    const data = await this.sendio.post<CreateContactResponseSuccess>(
+      '/contacts',
+      {
+        unsubscribed: payload.unsubscribed,
+        email: payload.email,
+        first_name: payload.firstName,
+        last_name: payload.lastName,
+        properties: payload.properties,
+        segments: payload.segments,
+        topics: payload.topics,
+      },
+      requestOptions,
+    );
+    return data;
+  }
+
+  async list(
+    options: ListContactsOptions = {},
+    requestOptions: RequestOptions = {},
+  ): Promise<ListContactsResponse> {
+    const segmentId = options.segmentId ?? options.audienceId;
+    if (!segmentId) {
+      const url = buildPaginationUrl('/contacts', options);
+      const data = await this.sendio.get<ListContactsResponseSuccess>(
+        url,
+        requestOptions,
+      );
+      return data;
+    }
+
+    const url = buildPaginationUrl(`/segments/${segmentId}/contacts`, options);
+    const data = await this.sendio.get<ListContactsResponseSuccess>(
+      url,
+      requestOptions,
+    );
+    return data;
+  }
+
+  async get(
+    options: GetContactOptions,
+    requestOptions: RequestOptions = {},
+  ): Promise<GetContactResponse> {
+    if (typeof options === 'string') {
+      return this.sendio.get<GetContactResponseSuccess>(
+        `/contacts/${options}`,
+        requestOptions,
+      );
+    }
+
+    if (!options.id && !options.email) {
+      return {
+        data: null,
+        headers: null,
+        error: {
+          message: 'Missing `id` or `email` field.',
+          statusCode: null,
+          name: 'missing_required_field',
+        },
+      };
+    }
+
+    if (!options.audienceId) {
+      return this.sendio.get<GetContactResponseSuccess>(
+        `/contacts/${options?.email ? options?.email : options?.id}`,
+        requestOptions,
+      );
+    }
+
+    return this.sendio.get<GetContactResponseSuccess>(
+      `/audiences/${options.audienceId}/contacts/${options?.email ? options?.email : options?.id}`,
+      requestOptions,
+    );
+  }
+
+  async update(
+    options: UpdateContactOptions,
+    requestOptions: RequestOptions = {},
+  ): Promise<UpdateContactResponse> {
+    if (!options.id && !options.email) {
+      return {
+        data: null,
+        headers: null,
+        error: {
+          message: 'Missing `id` or `email` field.',
+          statusCode: null,
+          name: 'missing_required_field',
+        },
+      };
+    }
+
+    if (!options.audienceId) {
+      const data = await this.sendio.patch<UpdateContactResponseSuccess>(
+        `/contacts/${options?.email ? options?.email : options?.id}`,
+        {
+          unsubscribed: options.unsubscribed,
+          first_name: options.firstName,
+          last_name: options.lastName,
+          properties: options.properties,
+        },
+        requestOptions,
+      );
+      return data;
+    }
+
+    const data = await this.sendio.patch<UpdateContactResponseSuccess>(
+      `/audiences/${options.audienceId}/contacts/${options?.email ? options?.email : options?.id}`,
+      {
+        unsubscribed: options.unsubscribed,
+        first_name: options.firstName,
+        last_name: options.lastName,
+        properties: options.properties,
+      },
+      requestOptions,
+    );
+    return data;
+  }
+
+  async remove(
+    payload: RemoveContactOptions,
+    requestOptions: RequestOptions = {},
+  ): Promise<RemoveContactsResponse> {
+    if (typeof payload === 'string') {
+      return this.sendio.delete<RemoveContactsResponseSuccess>(
+        `/contacts/${payload}`,
+        undefined,
+        requestOptions,
+      );
+    }
+
+    if (!payload.id && !payload.email) {
+      return {
+        data: null,
+        headers: null,
+        error: {
+          message: 'Missing `id` or `email` field.',
+          statusCode: null,
+          name: 'missing_required_field',
+        },
+      };
+    }
+
+    if (!payload.audienceId) {
+      return this.sendio.delete<RemoveContactsResponseSuccess>(
+        `/contacts/${payload?.email ? payload?.email : payload?.id}`,
+        undefined,
+        requestOptions,
+      );
+    }
+
+    return this.sendio.delete<RemoveContactsResponseSuccess>(
+      `/audiences/${payload.audienceId}/contacts/${
+        payload?.email ? payload?.email : payload?.id
+      }`,
+      undefined,
+      requestOptions,
+    );
+  }
+}

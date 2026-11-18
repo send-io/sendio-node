@@ -1,0 +1,321 @@
+import { version } from '../package.json';
+import { ApiKeys } from './api-keys/api-keys';
+import { Automations } from './automations/automations';
+import { Batch } from './batch/batch';
+import { Broadcasts } from './broadcasts/broadcasts';
+import type {
+  DeleteOptions,
+  GetOptions,
+  PostOptions,
+  PutOptions,
+} from './common/interfaces';
+import type { IdempotentRequest } from './common/interfaces/idempotent-request.interface';
+import type { PatchOptions } from './common/interfaces/patch-option.interface';
+import { ContactProperties } from './contact-properties/contact-properties';
+import { Contacts } from './contacts/contacts';
+import { Domains } from './domains/domains';
+import { Emails } from './emails/emails';
+import { Events } from './events/events';
+import type { ErrorResponse, Response } from './interfaces';
+import { Logs } from './logs/logs';
+import { Mailboxes } from './mailboxes/mailboxes';
+import { OAuthGrants } from './oauth-grants/oauth-grants';
+import { Segments } from './segments/segments';
+import { Suppressions } from './suppressions/suppressions';
+import { Templates } from './templates/templates';
+import { Topics } from './topics/topics';
+import { Transactional } from './transactional/transactional';
+import { Usage } from './usage/usage';
+import { Webhooks } from './webhooks/webhooks';
+
+const defaultBaseUrl = 'https://api.send.io';
+const defaultUserAgent = `sendio-node:${version}`;
+
+function getDefaultBaseUrl(): string {
+  return typeof process !== 'undefined' && process.env
+    ? process.env.SENDIO_BASE_URL || defaultBaseUrl
+    : defaultBaseUrl;
+}
+
+function getDefaultUserAgent(): string {
+  return typeof process !== 'undefined' && process.env
+    ? process.env.SENDIO_USER_AGENT || defaultUserAgent
+    : defaultUserAgent;
+}
+
+export interface SendioOptions {
+  baseUrl?: string;
+  userAgent?: string;
+  /**
+   * Print each API error to the console (`console.error`) as well as
+   * returning it in `{ error }`. Off by default: handled errors stay quiet.
+   */
+  debug?: boolean;
+}
+
+export class Sendio {
+  readonly baseUrl: string;
+  readonly userAgent: string;
+  private readonly headers: Headers;
+  private readonly debug: boolean;
+
+  readonly segments = new Segments(this);
+  readonly apiKeys = new ApiKeys(this);
+  /**
+   * @deprecated Use segments instead
+   */
+  readonly audiences = this.segments;
+  readonly automations = new Automations(this);
+  readonly batch = new Batch(this);
+  readonly broadcasts = new Broadcasts(this);
+  readonly contactProperties = new ContactProperties(this);
+  readonly contacts = new Contacts(this);
+  readonly domains = new Domains(this);
+  readonly emails = new Emails(this);
+  readonly events = new Events(this);
+  readonly logs = new Logs(this);
+  readonly mailboxes = new Mailboxes(this);
+  readonly oauthGrants = new OAuthGrants(this);
+  readonly suppressions = new Suppressions(this);
+  readonly templates = new Templates(this);
+  readonly transactional = new Transactional(this);
+  readonly topics = new Topics(this);
+  readonly usage = new Usage(this);
+  readonly webhooks = new Webhooks(this);
+
+  constructor(
+    readonly key?: string,
+    options?: SendioOptions,
+  ) {
+    if (!key) {
+      if (typeof process !== 'undefined' && process.env) {
+        this.key = process.env.SENDIO_API_KEY;
+      }
+
+      if (!this.key) {
+        throw new Error(
+          'Missing API key. Pass it to the constructor `new Sendio("mx_123")`',
+        );
+      }
+    }
+
+    this.baseUrl = options?.baseUrl ?? getDefaultBaseUrl();
+    this.userAgent = options?.userAgent ?? getDefaultUserAgent();
+    this.debug = options?.debug ?? false;
+
+    this.headers = new Headers({
+      Authorization: `Bearer ${this.key}`,
+      'User-Agent': this.userAgent,
+      'Content-Type': 'application/json',
+    });
+  }
+
+  // API errors (an HTTP status) are returned in { error }, so they are only
+  // printed when the caller asked for it with { debug: true } (SENDIO-419).
+  // A network failure (no status) is still printed outside production.
+  private logError(error: ErrorResponse, path: string, status?: number): void {
+    const print =
+      this.debug ||
+      (status === undefined &&
+        typeof process !== 'undefined' &&
+        process.env &&
+        process.env.NODE_ENV !== 'production');
+    if (!print) {
+      return;
+    }
+    console.error('[send.io API Error]:', {
+      ...(status !== undefined && { status }),
+      error,
+      path,
+    });
+  }
+
+  async fetchRequest<T>(path: string, options = {}): Promise<Response<T>> {
+    const { signal } = options as RequestInit;
+
+    try {
+      const response = await fetch(`${this.baseUrl}${path}`, options);
+
+      if (!response.ok) {
+        try {
+          const rawError = await response.text();
+          const parsedError = JSON.parse(rawError);
+
+          this.logError(parsedError, path, response.status);
+
+          return {
+            data: null,
+            error: parsedError,
+            headers: Object.fromEntries(response.headers.entries()),
+          };
+        } catch (err) {
+          if (signal?.aborted && err === signal.reason) {
+            throw err;
+          }
+
+          if (err instanceof SyntaxError) {
+            const error: ErrorResponse = {
+              name: 'application_error',
+              statusCode: response.status,
+              message:
+                'Internal server error. We are unable to process your request right now, please try again later.',
+            };
+
+            this.logError(error, path, response.status);
+
+            return {
+              data: null,
+              error,
+              headers: Object.fromEntries(response.headers.entries()),
+            };
+          }
+
+          const error: ErrorResponse = {
+            message: response.statusText,
+            statusCode: response.status,
+            name: 'application_error',
+          };
+
+          if (err instanceof Error) {
+            const errorWithMessage = { ...error, message: err.message };
+
+            this.logError(errorWithMessage, path, response.status);
+
+            return {
+              data: null,
+              error: errorWithMessage,
+              headers: Object.fromEntries(response.headers.entries()),
+            };
+          }
+
+          this.logError(error, path, response.status);
+
+          return {
+            data: null,
+            error,
+            headers: Object.fromEntries(response.headers.entries()),
+          };
+        }
+      }
+
+      const data = await response.json();
+      return {
+        data,
+        error: null,
+        headers: Object.fromEntries(response.headers.entries()),
+      };
+    } catch {
+      const error: ErrorResponse = {
+        name: 'application_error',
+        statusCode: null,
+        message: 'Unable to fetch data. The request could not be resolved.',
+      };
+
+      this.logError(error, path);
+
+      return {
+        data: null,
+        error,
+        headers: null,
+      };
+    }
+  }
+
+  async post<T>(
+    path: string,
+    entity?: unknown,
+    options: PostOptions & IdempotentRequest = {},
+  ) {
+    const headers = new Headers(this.headers);
+    const isFormData =
+      typeof FormData !== 'undefined' && entity instanceof FormData;
+
+    if (isFormData) {
+      headers.delete('Content-Type');
+    }
+
+    if (options.headers) {
+      for (const [key, value] of new Headers(options.headers).entries()) {
+        headers.set(key, value);
+      }
+    }
+    if (options.idempotencyKey) {
+      headers.set('Idempotency-Key', options.idempotencyKey);
+    }
+    const requestOptions = {
+      method: 'POST',
+      body: isFormData ? entity : JSON.stringify(entity),
+      ...options,
+      headers,
+    };
+
+    return this.fetchRequest<T>(path, requestOptions);
+  }
+
+  async get<T>(path: string, options: GetOptions = {}) {
+    const headers = new Headers(this.headers);
+    if (options.headers) {
+      for (const [key, value] of new Headers(options.headers).entries()) {
+        headers.set(key, value);
+      }
+    }
+    const requestOptions = {
+      method: 'GET',
+      ...options,
+      headers,
+    };
+
+    return this.fetchRequest<T>(path, requestOptions);
+  }
+
+  async put<T>(path: string, entity: unknown, options: PutOptions = {}) {
+    const headers = new Headers(this.headers);
+    if (options.headers) {
+      for (const [key, value] of new Headers(options.headers).entries()) {
+        headers.set(key, value);
+      }
+    }
+    const requestOptions = {
+      method: 'PUT',
+      body: JSON.stringify(entity),
+      ...options,
+      headers,
+    };
+
+    return this.fetchRequest<T>(path, requestOptions);
+  }
+
+  async patch<T>(path: string, entity: unknown, options: PatchOptions = {}) {
+    const headers = new Headers(this.headers);
+    if (options.headers) {
+      for (const [key, value] of new Headers(options.headers).entries()) {
+        headers.set(key, value);
+      }
+    }
+    const requestOptions = {
+      method: 'PATCH',
+      body: JSON.stringify(entity),
+      ...options,
+      headers,
+    };
+
+    return this.fetchRequest<T>(path, requestOptions);
+  }
+
+  async delete<T>(path: string, query?: unknown, options: DeleteOptions = {}) {
+    const headers = new Headers(this.headers);
+    if (options.headers) {
+      for (const [key, value] of new Headers(options.headers).entries()) {
+        headers.set(key, value);
+      }
+    }
+    const requestOptions = {
+      method: 'DELETE',
+      body: query === undefined ? undefined : JSON.stringify(query),
+      ...options,
+      headers,
+    };
+
+    return this.fetchRequest<T>(path, requestOptions);
+  }
+}

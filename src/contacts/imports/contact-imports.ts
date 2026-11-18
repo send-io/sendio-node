@@ -1,0 +1,115 @@
+import type { RequestOptions } from '../../common/interfaces/request-options.interface';
+import { buildPaginationQuery } from '../../common/utils/build-pagination-query';
+import type { Sendio } from '../../sendio';
+import type {
+  ContactImportColumnMap,
+  CreateContactImportOptions,
+  CreateContactImportRequestOptions,
+  CreateContactImportResponse,
+  CreateContactImportResponseSuccess,
+} from './interfaces/create-contact-import.interface';
+import type {
+  GetContactImportResponse,
+  GetContactImportResponseSuccess,
+} from './interfaces/get-contact-import.interface';
+import type {
+  ListContactImportsOptions,
+  ListContactImportsResponse,
+  ListContactImportsResponseSuccess,
+} from './interfaces/list-contact-imports.interface';
+
+type ContactImportFormFieldValue = string | object | null;
+
+export class ContactImports {
+  constructor(private readonly sendio: Sendio) {}
+
+  async create(
+    payload: CreateContactImportOptions,
+    requestOptions: CreateContactImportRequestOptions = {},
+  ): Promise<CreateContactImportResponse> {
+    const formData = this.buildCreateFormData(payload);
+
+    return this.sendio.post<CreateContactImportResponseSuccess>(
+      '/contacts/imports',
+      formData,
+      requestOptions,
+    );
+  }
+
+  async list(
+    options: ListContactImportsOptions = {},
+    requestOptions: RequestOptions = {},
+  ): Promise<ListContactImportsResponse> {
+    const searchParams = new URLSearchParams(buildPaginationQuery(options));
+
+    if (options.status !== undefined) {
+      searchParams.set('status', options.status);
+    }
+
+    const queryString = searchParams.toString();
+    const url = queryString
+      ? `/contacts/imports?${queryString}`
+      : '/contacts/imports';
+
+    return this.sendio.get<ListContactImportsResponseSuccess>(
+      url,
+      requestOptions,
+    );
+  }
+
+  async get(
+    id: string,
+    requestOptions: RequestOptions = {},
+  ): Promise<GetContactImportResponse> {
+    return this.sendio.get<GetContactImportResponseSuccess>(
+      `/contacts/imports/${id}`,
+      requestOptions,
+    );
+  }
+
+  private buildCreateFormData(payload: CreateContactImportOptions): FormData {
+    const formData = new FormData();
+
+    formData.append('file', payload.file);
+
+    this.appendField(
+      formData,
+      'column_map',
+      this.buildColumnMap(payload.columnMap ?? null),
+    );
+    this.appendField(formData, 'on_conflict', payload.onConflict ?? null);
+    this.appendField(formData, 'segments', payload.segments ?? null);
+    this.appendField(formData, 'topics', payload.topics ?? null);
+
+    return formData;
+  }
+
+  private buildColumnMap(columnMap: ContactImportColumnMap | null) {
+    if (columnMap === null) {
+      return null;
+    }
+
+    return {
+      email: columnMap.email,
+      first_name: columnMap.firstName,
+      last_name: columnMap.lastName,
+      unsubscribed: columnMap.unsubscribed,
+      properties: columnMap.properties,
+    };
+  }
+
+  private appendField(
+    formData: FormData,
+    name: string,
+    value: ContactImportFormFieldValue,
+  ): void {
+    if (value === null) {
+      return;
+    }
+
+    formData.append(
+      name,
+      typeof value === 'string' ? value : JSON.stringify(value),
+    );
+  }
+}

@@ -1,0 +1,39 @@
+import type { RequestOptions } from '../common/interfaces/request-options.interface';
+import { buildPaginationUrl } from '../common/utils/build-pagination-query';
+import type { Sendio } from '../sendio';
+import type {
+  GetLogResponse,
+  GetLogResponseSuccess,
+} from './interfaces/get-log.interface';
+import type {
+  ListLogsOptions,
+  ListLogsResponse,
+  ListLogsResponseSuccess,
+} from './interfaces/list-logs.interface';
+
+export class Logs {
+  constructor(private readonly sendio: Sendio) {}
+
+  async list(
+    options: ListLogsOptions = {},
+    requestOptions: RequestOptions = {},
+  ): Promise<ListLogsResponse> {
+    const url = buildPaginationUrl('/logs', options);
+    const data = await this.sendio.get<ListLogsResponseSuccess>(
+      url,
+      requestOptions,
+    );
+    return data;
+  }
+
+  async get(
+    id: string,
+    requestOptions: RequestOptions = {},
+  ): Promise<GetLogResponse> {
+    const data = await this.sendio.get<GetLogResponseSuccess>(
+      `/logs/${id}`,
+      requestOptions,
+    );
+    return data;
+  }
+}
